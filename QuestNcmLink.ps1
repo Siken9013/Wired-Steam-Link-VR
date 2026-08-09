@@ -63,6 +63,7 @@ $DnsServers = @('1.1.1.1', '8.8.8.8')   # NATed out; WinNAT has no DNS proxy
 $LeaseSecs  = 3600
 $NatName    = 'QuestNcmLink'
 $FwRuleName = 'Quest NCM Link (USB)'
+$FwDhcpName = 'Quest NCM Link (DHCP)'
 $VpnPackage = 'com.genymobile.gnirehtet'
 # -------------------------------------------------------------------------
 
@@ -82,6 +83,7 @@ $script:Serial     = $null
 $script:AdapterIdx = $null
 $script:NatMade    = $false
 $script:FwMade     = $false
+$script:FwDhcpMade = $false
 $script:IpMade     = $false
 $script:DhcpJob    = $null
 $script:WifiOffByUs = $false
@@ -99,6 +101,9 @@ function Restore-Everything {
     }
     if ($script:FwMade) {
         Remove-NetFirewallRule -DisplayName $FwRuleName -ErrorAction SilentlyContinue
+    }
+    if ($script:FwDhcpMade) {
+        Remove-NetFirewallRule -DisplayName $FwDhcpName -ErrorAction SilentlyContinue
     }
     if ($script:IpMade -and $script:AdapterIdx) {
         Remove-NetIPAddress -InterfaceIndex $script:AdapterIdx -IPAddress $PcIp `
@@ -219,6 +224,15 @@ try {
     New-NetFirewallRule -DisplayName $FwRuleName -Direction Inbound -Action Allow `
         -RemoteAddress "$Subnet.0/24" -Profile Any -ErrorAction SilentlyContinue | Out-Null
     $script:FwMade = $true
+
+    # DHCP has to be allowed separately. A DISCOVER arrives from 0.0.0.0 to
+    # 255.255.255.255, so it never matches the subnet-scoped rule above, and
+    # Windows has no built-in allow for inbound UDP 67 (only 68, for the
+    # client). Machines running Hyper-V/ICS happen to have one already, which
+    # is why this is only noticed on editions without it, such as Home.
+    New-NetFirewallRule -DisplayName $FwDhcpName -Direction Inbound -Action Allow `
+        -Protocol UDP -LocalPort 67 -Profile Any -ErrorAction SilentlyContinue | Out-Null
+    $script:FwDhcpMade = $true
 
     # Internet over the cable needs Windows NAT. The MSFT_NetNat CIM class
     # ships with Hyper-V, so Windows Home generally does not have it and
@@ -360,11 +374,25 @@ try {
 
     # ------------------------------------------------ 6. wait for the lease
     Say "[6/6] Waiting for the headset to take the lease..."
-    $leased = $false
+    $leased  = $false
+    $dhcpLog = @()
     for ($i = 0; $i -lt 40; $i++) {
         Start-Sleep -Seconds 2
+        $dhcpLog += Receive-Job $script:DhcpJob -ErrorAction SilentlyContinue
         $addr = & $script:Adb -s $script:Serial shell "ip -o -4 addr show usb0" 2>&1
         if ("$addr" -match [regex]::Escape($HeadsetIp)) { $leased = $true; break }
+
+        # Say something useful rather than sitting silent for 80 seconds.
+        if ($i -eq 7) {
+            if ($dhcpLog -match 'BIND-FAILED') {
+                Warn "      Could not listen on UDP 67 - something else owns it"
+                Warn "      (another DHCP server, or Internet Connection Sharing)."
+            } elseif (-not ($dhcpLog -match 'DISCOVER')) {
+                Say  "      Nothing heard from the headset yet, still waiting..."
+            } else {
+                Say  "      Headset is asking, waiting for it to accept..."
+            }
+        }
     }
 
     # Without NAT the cable cannot pass Android's internet check, so Wi-Fi
@@ -406,15 +434,31 @@ try {
         Write-Host ""
         Say "  In Steam Link, connect to $PcIp"
     } else {
+        $dhcpLog += Receive-Job $script:DhcpJob -ErrorAction SilentlyContinue
         Fail "  The headset never took a lease."
         Write-Host ""
-        Say "  Check, in order:"
-        Say "   - adb shell svc usb getFunctions           (expect: ncm)"
-        Say "   - adb shell ip -o addr show usb0           (expect: an inet line)"
-        Say "   - adb logcat -d | findstr DhcpClient       (expect: DHCPDISCOVER)"
-        Say "   - Another DHCP server may own UDP 67 on this PC:"
-        Say "       Get-NetUDPEndpoint -LocalPort 67"
-        Receive-Job $script:DhcpJob | ForEach-Object { Say "   dhcp: $_" }
+
+        if ($dhcpLog -match 'BIND-FAILED') {
+            Say "  This PC could not listen for DHCP on UDP 67. Something else"
+            Say "  already owns it - usually another DHCP server or Internet"
+            Say "  Connection Sharing. Find it with:"
+            Say "      Get-NetUDPEndpoint -LocalPort 67 | Select LocalAddress,OwningProcess"
+        } elseif (-not ($dhcpLog -match 'DISCOVER')) {
+            Say "  This PC never heard the headset ask for an address, which"
+            Say "  narrows it to one of two things:"
+            Say ""
+            Say "   1. Security software is blocking inbound UDP 67. This script"
+            Say "      adds a rule for it, so check a third-party firewall."
+            Say "   2. The headset is not asking. Confirm with:"
+            Say "        adb shell svc usb getFunctions       (expect: ncm)"
+            Say "        adb logcat -d | findstr DhcpClient   (expect: DHCPDISCOVER)"
+        } else {
+            Say "  The headset asked and this PC answered, but the address never"
+            Say "  took. Check what the headset ended up with:"
+            Say "      adb shell ip -o addr show usb0"
+        }
+        Write-Host ""
+        $dhcpLog | Select-Object -Last 8 | ForEach-Object { Say "   dhcp: $_" }
     }
     Write-Host "  ----------------------------------------------------------"
 
