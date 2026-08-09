@@ -104,12 +104,11 @@ setups do exactly this, so the script stops it automatically if it finds it.
 
 **One-time setup**
 
-1. Create a developer organization at
-   [developers.meta.com][org], signed in with the same Meta account your
-   headset uses. Any name works. Then verify the account — Meta requires
-   two-factor authentication **or** a phone number / credit card on file.
-   Developer mode does not appear until this is finished, which is where
-   almost everyone gets stuck.
+1. [Create a developer organization][org] on developers.meta.com, signed in
+   with the same Meta account your headset uses. Any name works. Then verify
+   the account — Meta requires two-factor authentication **or** a phone number
+   / credit card on file. Developer mode does not appear until this is
+   finished, which is where almost everyone gets stuck.
 2. In the **Meta Horizon** phone app: *Menu → Devices → your headset →
    Headset settings → Developer mode*. Turn it on, then reboot the headset.
 3. Plug the headset in, run `adb-scan.bat`, and accept **Allow USB debugging**
