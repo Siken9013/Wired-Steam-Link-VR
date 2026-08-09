@@ -165,7 +165,7 @@ exit.
 | `192.168.42.1/24` on the UsbNcm adapter | address removed, DHCP re-enabled |
 | DHCP server on UDP 67 | process stopped |
 | NAT for `192.168.42.0/24` | `Remove-NetNat` |
-| One inbound firewall rule for that subnet | `Remove-NetFirewallRule` |
+| Two inbound firewall rules — the `192.168.42.0/24` subnet, and UDP 67 for DHCP | `Remove-NetFirewallRule` |
 | Headset Wi-Fi off — Wi-Fi-off mode only | `svc wifi enable` |
 
 The USB mode change is never persisted — `persist.sys.usb.config` needs root to
