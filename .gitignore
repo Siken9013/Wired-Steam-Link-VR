@@ -1,0 +1,14 @@
+# Android platform-tools: shipped in the release zip, not committed.
+# The Android SDK license restricts redistribution, and this keeps a 6.3 MB
+# binary out of git history. Users cloning the repo drop these in themselves -
+# see "Getting adb.exe" in README.md.
+adb.exe
+AdbWinApi.dll
+AdbWinUsbApi.dll
+
+# Release assets are built from the repo, not stored in it.
+*.zip
+
+# Windows noise
+Thumbs.db
+desktop.ini

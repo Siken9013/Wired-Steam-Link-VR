@@ -206,7 +206,7 @@ Please include the output of `adb shell svc usb getFunctions` and, if it fails,
 **Downloading the release zip?** ADB is already in it — skip this section.
 
 **Cloning the repo?** ADB is deliberately not committed, both to keep a 6.3 MB
-binary out of git history and because the Android SDK licence restricts
+binary out of git history and because the Android SDK license restricts
 redistributing platform-tools. Download [platform-tools][pt] and drop these
 three files next to `NCM-Run.bat`:
 
@@ -234,5 +234,5 @@ in this order:
 [MIT](LICENSE) — use it, change it, ship it, just keep the copyright notice.
 
 `adb.exe` and its DLLs, where bundled in a release, are Google's Android
-platform-tools and are covered by the Android Software Development Kit Licence
-Agreement, not by the MIT licence above.
+platform-tools and are covered by the Android Software Development Kit License
+Agreement, not by the MIT license above.
