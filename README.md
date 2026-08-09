@@ -88,8 +88,9 @@ and it is *not* the path that works. The Ethernet service is, because its
 interface filter is `((eth\d)|(usb\d))` and it claims `usb0` as a **client**.
 
 **4. Any VpnService will swallow the link.** A VPN captures `uid 0-99999`
-regardless of routing, so traffic never reaches the cable. gnirehtet-based
-setups do exactly this, so the script stops it automatically if it finds it.
+regardless of routing, so traffic never reaches the cable while every check
+still reports success. Rare on a headset, but if the link looks perfect and
+Steam Link still cannot find the PC, turn any VPN off before looking further.
 
 ## Requirements
 

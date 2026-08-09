@@ -36,9 +36,11 @@
         real internet - hence the NAT below. Without NAT you would have to turn
         the headset's Wi-Fi off instead.
 
-      * Any active VpnService captures uid 0-99999 and swallows all app
-        traffic regardless of routing. gnirehtet-based cable setups work
-        exactly this way, so it is stopped first if present.
+      * Any active VpnService on the headset captures uid 0-99999 and swallows
+        all app traffic regardless of routing, so the cable goes unused while
+        every check still reports success. Rare on a headset, but if the link
+        looks perfect and Steam Link still cannot see the PC, that is the
+        thing to check.
 #>
 
 [CmdletBinding()]
@@ -64,7 +66,6 @@ $LeaseSecs  = 3600
 $NatName    = 'QuestNcmLink'
 $FwRuleName = 'Quest NCM Link (USB)'
 $FwDhcpName = 'Quest NCM Link (DHCP)'
-$VpnPackage = 'com.genymobile.gnirehtet'
 # -------------------------------------------------------------------------
 
 function Say([string]$m) { Write-Host "  $m" }
@@ -172,21 +173,12 @@ try {
     } else {
         (Split-Path $script:Adb -Leaf) + '  (from PATH)'
     }
-    Say "[1/6] Headset on USB: $serialShown"
+    Say "[1/5] Headset on USB: $serialShown"
     Say "      using adb: $adbShown"
 
-    # ------------------------------------------- 2. clear the old VPN tunnel
-    $vpnRunning = (& $script:Adb -s $script:Serial shell pm list packages) -match [regex]::Escape($VpnPackage)
-    if ($vpnRunning) {
-        & $script:Adb -s $script:Serial shell am force-stop $VpnPackage 2>&1 | Out-Null
-        Say "[2/6] Stopped the gnirehtet tunnel (it would capture all traffic)"
-    } else {
-        Say "[2/6] No gnirehtet tunnel to clear"
-    }
-
-    # ------------------------------------------------- 3. switch USB to NCM
+    # ------------------------------------------------- 2. switch USB to NCM
     # Single function only - see the header comment.
-    Say "[3/6] Switching USB to NCM..."
+    Say "[2/5] Switching USB to NCM..."
     & $script:Adb -s $script:Serial shell svc usb setFunctions ncm 2>&1 | Out-Null
 
     $adapter = $null
@@ -208,8 +200,8 @@ try {
     $pcMac = ($adapter.MacAddress -replace '-', ':').ToLower()
     Ok "      Windows adapter: '$($adapter.Name)' ($($adapter.LinkSpeed))"
 
-    # --------------------------------------------------- 4. address PC side
-    Say "[4/6] Configuring the PC end ($PcIp/$PrefixLen)..."
+    # --------------------------------------------------- 3. address PC side
+    Say "[3/5] Configuring the PC end ($PcIp/$PrefixLen)..."
     Get-NetIPAddress -InterfaceIndex $script:AdapterIdx -AddressFamily IPv4 -ErrorAction SilentlyContinue |
         Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue
     Set-NetIPInterface -InterfaceIndex $script:AdapterIdx -AddressFamily IPv4 `
@@ -259,8 +251,8 @@ try {
         }
     }
 
-    # ------------------------------------------------- 5. serve DHCP to usb0
-    Say "[5/6] Serving DHCP on the link..."
+    # ------------------------------------------------- 4. serve DHCP to usb0
+    Say "[4/5] Serving DHCP on the link..."
     $script:DhcpJob = Start-Job -Name 'QuestNcmDhcp' -ArgumentList `
         $PcIp, $HeadsetIp, $PrefixLen, $DnsServers, $LeaseSecs, $pcMac -ScriptBlock {
         param($PcIp, $OfferIp, $PrefixLen, $DnsServers, $LeaseSecs, $PcMac)
@@ -372,8 +364,8 @@ try {
         }
     }
 
-    # ------------------------------------------------ 6. wait for the lease
-    Say "[6/6] Waiting for the headset to take the lease..."
+    # ------------------------------------------------ 5. wait for the lease
+    Say "[5/5] Waiting for the headset to take the lease..."
     $leased  = $false
     $dhcpLog = @()
     for ($i = 0; $i -lt 40; $i++) {
@@ -415,10 +407,10 @@ try {
         Write-Host "        This PC : $PcIp" -ForegroundColor White
         Write-Host ""
 
-        $def = & $script:Adb -s $script:Serial shell "dumpsys connectivity" 2>&1 |
-            Select-String '^Active default network'
-        $eth = & $script:Adb -s $script:Serial shell "dumpsys connectivity" 2>&1 |
-            Select-String 'Ethernet CONNECTED'
+        # One dump, both questions asked of it.
+        $conn = & $script:Adb -s $script:Serial shell "dumpsys connectivity" 2>&1
+        $def  = $conn | Select-String '^Active default network'
+        $eth  = $conn | Select-String 'Ethernet CONNECTED'
 
         if ($eth) { Ok "  Headset has an ETHERNET network on the cable." }
         Say "  $def"
