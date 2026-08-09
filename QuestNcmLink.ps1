@@ -154,8 +154,21 @@ try {
         Say "    - Did you accept 'Allow USB debugging' in the headset?"
         return
     }
-    Say "[1/6] Headset on USB: $($script:Serial)"
-    Say "      using adb: $($script:Adb)"
+    # This output gets pasted into bug reports, so keep the user's Windows
+    # username and full device serial out of it. $script:Serial itself is
+    # untouched - only what is printed is shortened.
+    $serialShown = if ($script:Serial.Length -gt 8) {
+        $script:Serial.Substring(0, 4) + '...' + $script:Serial.Substring($script:Serial.Length - 4)
+    } else {
+        $script:Serial
+    }
+    $adbShown = if ($script:Adb -like "$PSScriptRoot*") {
+        '.\' + (Split-Path $script:Adb -Leaf) + '  (bundled)'
+    } else {
+        (Split-Path $script:Adb -Leaf) + '  (from PATH)'
+    }
+    Say "[1/6] Headset on USB: $serialShown"
+    Say "      using adb: $adbShown"
 
     # ------------------------------------------- 2. clear the old VPN tunnel
     $vpnRunning = (& $script:Adb -s $script:Serial shell pm list packages) -match [regex]::Escape($VpnPackage)
